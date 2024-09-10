@@ -1,44 +1,54 @@
  Prerequisite 
  ------------
 
-      Docker - for image building and pushing.
-      Minikube - a local kubernetes cluster for testing and deployment.
+      Docker(for image building and pushing)
+      Minikube(a local kubernetes cluster for testing and deployment)
+      Kubectl(Kubernetes command-line tool)
 
 
  Deployment Architecture
  -----------------------
 
-    Secret file:
-      secrets.yaml - for storing the mongodb credentials.
+    Secret:
+      secrets.yaml - Stores MongoDB credentials.
 
     Persistent Volumes:
-      pv.yaml - for configuring persistent storage. 
-      pvc.yaml - for configuring durable storage.
+      pv.yaml - Configures persistent storage. 
+      pvc.yaml - Claims durable storage.
 
-    MongoDB :     
-      mongodb-stateful.yaml - for managing mongodb pods with pv and pvc.
-      mongodb-services.yaml - provides direct access to MongoDB pods.
+    MongoDB:     
+      mongodb-stateful.yaml - Manages MongoDB pods with PV and PVC.
+      mongodb-services.yaml - Provides direct access to MongoDB pods.
 
-    Flask Application   
-      app-deployment.yaml - for deploying flask application.
-      app-service.yaml - for exposing the application through ClusterIP.
+    Flask Application:   
+      app-deployment.yaml - Deploys Flask application.
+      app-service.yaml - Exposes the application through ClusterIP.
 
-
-  Minikube
-  ---------
-
-    minikube start - to start the local kubernetes cluster.
+     Autoscaling:
+      hpa.yaml - Configures Horizontal Pod Autoscaler for the Flask app
 
 
-  Resources Creation
-  -------------------
+ Deployment Steps
+ -----------------
+    Start Minikube:
+      minikube start
+    Build and Push Docker Images:
+      docker build -t harshitasadudiya/flask-monngodb-app .
+      docker push harshitasadudiya/flask-mongodb-app:latest
+    Create Kubernetes Resources:
+      #create all the resourcres using "Kubectl apply -f <name>"
+      kubectl apply -f secrets.yaml
+      kubectl apply -f pv.yaml
+      kubectl apply -f pvc.yaml
+      kubectl apply -f mongodb-stateful.yaml
+      kubectl apply -f mongodb-services.yaml
+      kubectl apply -f app-deployment.yaml
+      kubectl apply -f app-service.yaml
+      kubectl apply -f hpa.yaml
 
-    #create all the resourcres using "Kubectl apply -f <name>"
-    kubectl apply -f secrets.yaml
-    kubectl apply -f pv.yaml
-    kubectl apply -f pvc.yaml
-    kubectl apply -f mongodb-stateful.yaml
-    kubectl apply -f mongodb-services.yaml
-    kubectl apply -f app-deployment.yaml
-    kubectl apply -f app-service.yaml
-    kubectl apply -f hpa.yaml
+ Verify Deplyment:
+------------------
+    Kubectl get pods
+    kubectl get services
+    kubectl get pv,pvc
+    kubectl get hpa
