@@ -1,0 +1,111 @@
+Instructions for Submission:
+1. Provide the Dockerfile for the Flask application.
+2. Provide instructions on how to build and push the Docker image to a container registry.
+3. Provide the Kubernetes YAML files for all resources created.
+4. Provide a README with detailed steps to deploy the Flask application and MongoDB on a Minikube Kubernetes cluster.
+5. Include an explanation of how DNS resolution works within the Kubernetes cluster for inter-pod communication.
+6. Include an explanation of resource requests and limits in Kubernetes.
+7 Design Choices: Describe why you chose the specific configurations and setups, including any alternatives(if any) you considered and why
+you did not choose them.
+8. Cookie point: Testing Scenarios: Detail how you tested autoscaling and database interactions, including simulating high traffic. Provide
+results and any issues encountered during testing.
+  
+---------------------------------------------------
+
+1. Dockerfile 
+
+FROM python:3.12
+LABEL description="A Python Flask Application connected to MongoDB."
+WORKDIR /app
+COPY . .
+RUN pip install -r requirements.txt
+ENV FLASK_APP=app.py
+ENV FLASK_ENV=development
+EXPOSE 5000
+CMD ["python", "app.py"]
+
+-----------------------------------------------------
+
+2. Instructions to build Docker Image
+
+#go to directory where dockerfile is present, and build docker image with -t (tag) option
+docker build -t harshitasadudiya/flask-mongodb-app .
+
+#run the container to check the container state
+docker run -d -p 5000:5000 --name flask-mongodb-app -e MONGODB_URI=mongodb://localhost:27017/ harshitasadudiya/flask-mongodb-app
+
+#login to docker hub 
+docker login -u <username>
+password
+
+#push the docker image to docker hub 
+docker push harshitasadudiya/flask-mongodb-app:latest
+
+
+------------------------------------------------------
+
+3. Kubernetes Yaml Files
+
+Config file               - secrets.yaml
+Persistent Volume         - pv.yaml
+Persistent Volume Claim   - pvc.yaml
+MongoDB Deployment        - mongodb-stateful.yaml
+MongoDB Services          - mongodb-services.yaml
+Flask Deployment          - app-deployment.yaml
+Flask Services            - app-service.yaml
+Horizontal Pod Autoscaler - hpa.yaml
+
+------------------------------------------------------
+
+4. README with detailed steps to deploy the Flask application and MongoDB    on a Minikube Kubernetes cluster
+ 
+     README.txt - Contains steps to deploy the flask application.  
+
+
+------------------------------------------------------
+
+5. DNS resolution 
+
+In Kubernetes, DNS plays a crucial role in enabling inter-pod communication.
+  
+DNS resolution is handled by CoreDNS. Pods can communicate with each other using service names. In the setup, flask application is connecting the MongoDB using the service name "mongodb-service" in the connecting string.
+
+
+------------------------------------------------------
+
+6. Resource requests and limits in Kubernetes
+
+In Kubernetes, resource requests and resource limits are ways to manage and control resource allocation for containers.
+ Resource requests - defines the minimum amount of CPU or memory a container needs to function properly.
+ Resource limits - specify the maximum amount of resources a container can use. This prevents a container from consuming excessive resources.
+
+By setting both requests and limits, we ensure that containers receive adequate resources while also preventing m=any single container from monopolizing resources, thus maintaining overall cluster health and performance.
+
+-------------------------------------------------------
+
+7. Design Choices
+
+a. Used StatefulSet for MongoDB to ensure stable network identities and persistent storage.
+b. Used Deployment for the Flask application to allow easy scaling and updates.
+c. Used NodePort service for the Flask application to make it accessible from outside the cluster.
+d. Configured HPA based on CPU usage to automatically scale the application under high load.
+
+
+---------------------------------------------------------
+
+8. Testing Scenarios
+
+Testing application:
+Tested root end point using "curl http://192.168.49.2:27017/"
+Tested inserting data using "curl -X POST -H "Content-Type: application/json" -d '{"name":"XYZ"}' http://192.168.49.2:27017/data"
+Tested retrieving data using "curl http://192.168.49.2:27017/data"
+
+Autoscaling Testing:
+Tested autoscaling by simulating high CPU usage by "kubectl run -it --rm load-generator --image=busybox /bin/sh"
+#inside the container:
+while true: do wget -q -o- http://flask-app-service.flask-mongo-app.svc.cluster.local; done
+And monitored HPA and Pod count by "kubectl get hpa -n default -w" and "kubectl get pods -n default -w".
+
+
+
+
